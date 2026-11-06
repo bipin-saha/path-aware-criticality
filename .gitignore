@@ -1,0 +1,10 @@
+# Cityscapes data and everything derived from it: license forbids redistribution, and it is 19 GB
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.pt
+*.zip
+runs/
+.DS_Store
