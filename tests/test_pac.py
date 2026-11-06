@@ -44,3 +44,16 @@ def test_auroc():
     from pac.stats import auroc
     assert auroc([.1, .2, .8, .9], [0, 0, 1, 1]) == 1.0
     assert auroc([1, 1, 1, 1], [0, 1, 0, 1]) == 0.5
+
+
+def test_e1_scorer_on_synthetic_labels():
+    """Synthetic key and labels (NOT annotations): checks the scorer's mechanics only."""
+    from pac.e1_score import evaluate, cohen_kappa
+    rng = np.random.default_rng(0); key = {}
+    for i in range(120):
+        key[f"img/o{i:03d}.jpg"] = dict(Z=float(rng.uniform(3, 60)), road=bool(rng.random() < .5), X=0.0, cls="person", h_px=float(rng.uniform(20, 300)))
+    ids = list(key); y = [(key[i]["Z"] < 30) and key[i]["road"] for i in ids]   # labels follow distance+road exactly
+    r = evaluate(key, ids, y, n=50)
+    assert r["pac"]["auroc"] > 0.95 and abs(r["ocm_no_velocity"]["auroc"] - 0.5) < 1e-9
+    assert r["pac"]["auroc"] > r["inverse_distance"]["auroc"]
+    assert cohen_kappa([1, 0, 1, 0], [1, 0, 1, 0]) == 1.0 and abs(cohen_kappa([1, 1, 0, 0], [1, 0, 1, 0])) < 1e-9
