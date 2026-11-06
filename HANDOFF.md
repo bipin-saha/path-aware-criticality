@@ -38,3 +38,20 @@ Full plan: `Risk-Weighted 2D Detection Evaluation — Research Plan (QPAIN 2027)
 
 ## Repo is public
 Do not add data, weights, credentials or personal details. Double-blind: make it private or use an anonymized mirror before linking from a submission.
+
+## Update (6 Nov): detector results and decisions
+Predictions (not in repo; regenerate with `python -m pac.infer`): official COCO `yolo11m` (`--rider-from-person`, MPS, 500 val images in about 70 s) and zero-shot `yoloe-11m` (CPU, about 150 s). YOLOE needed `pip install git+https://github.com/ultralytics/CLIP.git` in the env. Scoring: `python -m pac.evaluate data/cityscapes data/preds/yolo11m_coco.json data/preds/yoloe11m_zs.json [--min-h 10] [--fp unit] [--merge-rider]`. Result JSONs are in `results/`.
+
+Decisions taken (change if the advisor disagrees):
+- Primary metric: mean of per-class AP at IoU 0.5 (reduces to standard mAP with weights 1). Pooled AP and operating-point (score >= 0.25) PAC-R/P are secondary: the class-vulnerability factor h cancels inside per-class AP and only matters there.
+- Primary protocol: rider merged into person (`--merge-rider`; rider detections dropped). 8-class numbers are secondary because COCO has no rider class.
+- False positives get criticality from stereo depth + surface under the predicted box (`--fp crit`); `--fp unit` is reported as a sensitivity check.
+
+Findings so far (single run, no confidence intervals):
+- 8-class, per-class mean AP: unweighted gap YOLO11m minus YOLOE 8.4 points, PAC gap 5.6 (H5 needs a difference of at least 5: NOT met; 2.8). Rider merged: 7.7 vs 3.9 (difference 3.8, still not met).
+- Pooled AP flips the 8-class ranking under PAC (YOLOE ahead by 1.1), so the case-study conclusion depends on the aggregation. Do not claim a winner before bootstrap (E7).
+- Boxes under 10 px and FP weighting change the PAC gap by at most 0.5 points.
+- Critical miss rate (kappa >= 0.8, score >= 0.25): YOLO11m 2.0%, YOLOE 3.8% (8-class), both 2.0% rider-merged.
+- Not done: bootstrap CIs, human-agreement study E1, PAC variants pilot E2, no training run (needs the user's permission).
+
+Standing rules from the user: ask before any training; run anything over 2 minutes detached; answer timing questions from measurement, never estimates.

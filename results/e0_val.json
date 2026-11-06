@@ -1,0 +1,33 @@
+{
+  "n_objects": 10119,
+  "n_with_depth": 9764,
+  "d_stop_m": 34.6,
+  "depth_source": {
+    "stereo": 8874,
+    "ground_plane": 890,
+    "none": 355
+  },
+  "F1_ocm_weights_all_one": true,
+  "F2": {
+    "n_persons": 2833,
+    "median_rel_error": 0.106,
+    "share_rel_error_gt_25pct": 0.302,
+    "share_foreground_misassigned_vs_22m": 0.092,
+    "share_misassigned_excluding_truncated": null
+  },
+  "F3": {
+    "n_within_dstop": 3665,
+    "n_surface_unknown": 460,
+    "share_offroad_of_known": 0.505,
+    "by_class": {
+      "bicycle": 0.68,
+      "bus": 0.136,
+      "car": 0.295,
+      "motorcycle": 0.649,
+      "person": 0.696,
+      "rider": 0.367,
+      "train": 0.0,
+      "truck": 0.167
+    }
+  }
+}

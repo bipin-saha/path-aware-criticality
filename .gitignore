@@ -8,3 +8,5 @@ __pycache__/
 *.zip
 runs/
 .DS_Store
+*.ts
+*.torchscript
