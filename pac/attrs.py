@@ -9,7 +9,7 @@ from .criticality import lateral_offset
 
 def pair_riders(objs):
     """Pair each bicycle/motorcycle with the rider on it (greedy by overlap >= 0.3 of the bike box); the pair is
-    one road user, so the bike takes the rider's surface/road/X (consistent path weight). Sets pair_id on both."""
+    one road user, so both take the bike's surface (else the rider's): consistent path weight. Sets pair_id on both."""
     riders = [o for o in objs if o["cls"] == "rider"]; used = set(); n = 0
     for b in sorted([o for o in objs if o["cls"] in ("bicycle", "motorcycle")], key=lambda o: o["mask_id"]):
         best, bi = 0.3, -1
@@ -22,7 +22,10 @@ def pair_riders(objs):
         if bi >= 0:
             used.add(bi); r = riders[bi]; n += 1
             b["pair_id"] = r["pair_id"] = n
-            b["surface"], b["road"] = r["surface"], r["road"]
+            # the bike's bottom edge touches the ground (the rider's feet are hidden behind it): prefer its surface
+            src = b if b["surface"] != -1 else r
+            b["surface"], b["road"] = src["surface"], src["road"]
+            r["surface"], r["road"] = src["surface"], src["road"]
 
 
 def build(root, split, boxes_dir="data/boxes"):
