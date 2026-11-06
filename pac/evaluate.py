@@ -38,13 +38,14 @@ def det_geometry(det, disp, lab, cam):
     return Z, bool(is_road(s)), float(X)
 
 
-def evaluate(root, attrs, preds_list, min_h=0, fp_mode="crit", d_max=None, merge_rider=False):
+def evaluate(root, attrs, preds_list, min_h=0, fp_mode="crit", d_max=None, merge_rider=False, return_raw=False):
     d_max = d_max or C.stopping_distance()
     names = list(preds_list)
     rec = {n: {s: {c: [] for c in CLASS_NAMES} for s in SCHEMES} for n in names}   # (score,status,w)
     gtw = {s: {c: 0.0 for c in CLASS_NAMES} for s in SCHEMES}
     op = {n: {s: dict(tp=0.0, gt=0.0, fp=0.0) for s in SCHEMES} for n in names}
     cmiss = {n: [] for n in names}; fg = {n: [0, 0] for n in names}
+    gimg = {s: {c: np.zeros(len(attrs)) for c in CLASS_NAMES} for s in SCHEMES}  # per-image GT weight (for bootstrap)
     for k, (stem, A) in enumerate(sorted(attrs.items())):
         city = stem.split("_")[0]
         gts = [dict(o, cls="person") if (merge_rider and o["cls"] == "rider") else o for o in A["objects"] if o["h_px"] >= min_h]
@@ -53,7 +54,7 @@ def evaluate(root, attrs, preds_list, min_h=0, fp_mode="crit", d_max=None, merge
         Xg = np.array([o["X"] if o["X"] is not None else 0.0 for o in gts]); clsg = [o["cls"] for o in gts]
         W = {s: (weights(s, Zg, roadg, Xg, clsg, d_max) if gts else np.zeros(0)) for s in SCHEMES}
         for s in SCHEMES:
-            for j, g in enumerate(gts): gtw[s][g["cls"]] += W[s][j]
+            for j, g in enumerate(gts): gtw[s][g["cls"]] += W[s][j]; gimg[s][g["cls"]][k] += W[s][j]
         disp = lab = None
         for n in names:
             dets = [d for d in preds_list[n].get(stem, []) if (d["box"][3] - d["box"][1]) >= min_h
@@ -73,8 +74,8 @@ def evaluate(root, attrs, preds_list, min_h=0, fp_mode="crit", d_max=None, merge
             missed = set(range(len(gts))) - {gof[i] for i in range(len(dets)) if st[i] == "tp" and dets[i]["score"] >= OP}
             for s in SCHEMES:
                 for i, d in enumerate(dets):
-                    if st[i] == "tp": rec[n][s][d["cls"]].append((d["score"], "tp", W[s][gof[i]]))
-                    elif st[i] == "fp": rec[n][s][d["cls"]].append((d["score"], "fp", Wf[s][fpos[i]]))
+                    if st[i] == "tp": rec[n][s][d["cls"]].append((d["score"], "tp", W[s][gof[i]], k))
+                    elif st[i] == "fp": rec[n][s][d["cls"]].append((d["score"], "fp", Wf[s][fpos[i]], k))
                     if d["score"] >= OP:
                         if st[i] == "tp": op[n][s]["tp"] += W[s][gof[i]]
                         elif st[i] == "fp": op[n][s]["fp"] += Wf[s][fpos[i]]
@@ -100,7 +101,7 @@ def evaluate(root, attrs, preds_list, min_h=0, fp_mode="crit", d_max=None, merge
                              precision=o["tp"] / (o["tp"] + o["fp"]) if o["tp"] + o["fp"] else 0.0)
         res[n]["critical_miss_rate"] = float(np.mean([any(k >= 0.8 for k in ks) for ks in cmiss[n]]))
         res[n]["feifel_fg_person_miss"] = fg[n][0] / fg[n][1] if fg[n][1] else None
-    return res
+    return (res, dict(rec=rec, gimg=gimg)) if return_raw else res
 
 
 def main():
